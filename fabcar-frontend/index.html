@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <title>FabCar Demo</title>
+    </head>
+
+
+    <body>
+        <nav class="navbar navbar-dark bg-dark">
+            <a class="navbar-brand" href="/index.html">FabCar Demo</a>
+        </nav>
+
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item">
+                      <a class="nav-link active" href="#" id="listTab" onclick="showCarList()">Car list</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#" id="newTab" onclick="showNewCarForm()">Add new car</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#" id="changeTab" onclick="showChangeOwnerForm()">Change owner</a>
+                    </li>
+                </ul>  
+            </div>
+            <div class="header-body">
+                <div class="row">
+                    <div class="col-10 mt-2">
+                        <table id="carTable" class="table table-bordered table-condensed table-striped">
+                            <thead>
+                            <tr>
+                              <th>Car Key</th>
+                              <th>Car Maker</th>
+                              <th>Car Model</th>
+                              <th>Car Color</th>
+                              <th>Owner</th>
+                            </tr>
+                            </thead>
+                        </table>
+
+
+                        <form id="formNewCar" style="display: none;">
+                            <div class="form-group">
+                              <label for="carID">Car ID</label>
+                              <input type="text" class="form-control" id="carID" placeholder="Car ID">
+                            </div>
+                            <div class="form-group">
+                              <label for="brand">Brand</label>
+                              <input type="text" class="form-control" id="brand" placeholder="Brand">
+                            </div>
+
+                            <div class="form-group">
+                              <label for="model">Model</label>
+                              <input type="text" class="form-control" id="model" placeholder="Model">
+                            </div>
+
+                            <div class="form-group">
+                              <label for="color">Color</label>
+                              <input type="text" class="form-control" id="color" placeholder="Color">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="owner">Owner</label>
+                                <input type="text" class="form-control" id="owner" placeholder="Owner">
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" onclick="uploadCar()">Submit</button>
+                          </form>
+
+                          <form id="formNewOwner" style="display: none;">
+                            <div class="form-group">
+                              <label for="carID">Car ID</label>
+                              <input type="text" class="form-control" id="carID" placeholder="Car ID">
+                            </div>
+                            <div class="form-group">
+                              <label for="owner">New owner</label>
+                              <input type="text" class="form-control" id="owner" placeholder="New owner">
+                            </div>
+                            <button type="submit" class="btn btn-primary" onclick="newOwner()">Submit</button>
+                          </form>
+                            
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+
+        <script src="node_modules/jquery/dist/jquery.min.js"></script>
+        <script src="node_modules/popper.js/dist/umd/popper.min.js"></script>
+        <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+
+        <script>
+
+            function showCarList(){
+              $("#carTable tr").remove();
+              $( "#formNewCar" ).hide();
+              $( "#formNewOwner" ).hide();
+              $( "#carTable" ).show();
+              $( "#newTab").removeClass("active");
+              $( "#changeTab" ).removeClass("active");
+              $( "#listTab" ).addClass("active");
+                
+              carList();
+            }
+            function carList(){
+                
+                var theUrl = 'http://localhost:8090/api/queryallcars';
+                var xmlHttp = new XMLHttpRequest();
+                xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+                xmlHttp.send( null );
+                var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
+                parsedResponse = JSON.parse(parsedResponse)
+                carListSuccess(parsedResponse);
+            }
+
+            function carListSuccess(cars) {
+                // Iterate over the collection of data
+                $.each(cars, function (index, car) {
+                  // Add a row to the car table
+                  carAddRow(car);
+                });
+            }
+
+            function carAddRow(car) {
+             // Check if <tbody> tag exists, add one if not
+              if ($("#carTable tbody").length == 0) {
+               $("#carTable").append("<tbody></tbody>");
+              }
+              // Append row to <table>
+              $("#carTable tbody").append(
+                carBuildTableRow(car));
+            }
+            function carBuildTableRow(car) {
+              var ret =
+                "<tr>" +
+                 "<td>" + car.Key + "</td>"
+                  + "<td>" + car.Record.make + "</td>"
+                  + "<td>" + car.Record.model + "</td>"
+                  + "<td>" + car.Record.color + "</td>" 
+                  + "<td>" + car.Record.owner + "</td>"
+                + "</tr>";
+              return ret;
+            }
+
+            function handleException(request, message, error) {
+              var msg = "";
+              msg += "Code: " + request.status + "\n";
+              msg += "Text: " + request.statusText + "\n";
+              if (request.responseJSON != null) {
+                msg += "Message" +
+                    request.responseJSON.Message + "\n";
+              }
+              alert(msg);
+            }
+
+        </script>
+
+        <script>
+        
+            function showNewCarForm(){
+              $( "#formNewCar" ).show();
+              $( "#carTable" ).hide();
+              $( "#formNewOwner" ).hide();
+              $( "#listTab").removeClass("active");
+              $( "#changeTab" ).removeClass("active");
+              $( "#newTab" ).addClass("active");
+            }
+            function uploadCar(){
+                const carID = document.getElementById('formNewCar').elements['carID'].value;
+                const brand = document.getElementById('formNewCar').elements['brand'].value;
+                const model = document.getElementById('formNewCar').elements['model'].value;
+                const color = document.getElementById('formNewCar').elements['color'].value;
+                const owner = document.getElementById('formNewCar').elements['owner'].value;
+
+                
+                var newCar = {"carid":carID, "make":brand, "model":model, "colour":color, "owner":owner}
+                console.log(newCar);
+                var theUrl = 'http://localhost:8090/api/addcar/';
+                var xmlHttp = new XMLHttpRequest();
+                xmlHttp.open( "POST", theUrl, true ); // false for synchronous request
+                xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                
+                xmlHttp.onreadystatechange = function() {//Call a function when the state changes.
+                  if(xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    alert(xmlHttp.responseText);
+                  }
+                }
+
+                xmlHttp.send(JSON.stringify(newCar));                
+            }
+        </script>
+
+        <script>
+          function showChangeOwnerForm(){
+              $( "#formNewCar" ).hide();
+              $( "#carTable" ).hide();
+              $( "#formNewOwner" ).show();
+              $( "#listTab").removeClass("active");
+              $( "#newTab" ).removeClass("active");
+              $( "#changeTab" ).addClass("active");
+          }
+
+          function newOwner(){
+              const carID = document.getElementById('formNewOwner').elements['carID'].value;
+              const owner = document.getElementById('formNewOwner').elements['owner'].value;
+
+              
+              var newCar = {"owner":owner}
+              var theUrl = 'http://localhost:8090/api/changeowner/' + carID;
+              console.log(theUrl);
+              var xmlHttp = new XMLHttpRequest();
+              xmlHttp.open( "PUT", theUrl, true ); // false for synchronous request
+              xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+              
+              xmlHttp.onreadystatechange = function() {//Call a function when the state changes.
+                if(xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                  alert(xmlHttp.responseText);
+                }
+              }
+
+              xmlHttp.send(JSON.stringify(newCar));
+          }
+        </script>
+
+        <script>
+        
+            $(document).ready(function () {
+                $( "#formNewCar" ).hide();
+                $( "#carTable" ).show();
+                
+                carList();
+            });            
+            
+           
+        </script>
+        
+    </body>
+
+</html>
