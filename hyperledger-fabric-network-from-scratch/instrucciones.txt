@@ -1,0 +1,29 @@
+CREAR RED HYPERLEDGER FABRIC:
+    -SEGUIR LOS PASOS DE ESTE TUTORIAL https://www.blockchainexpert.uk/blog/how-to-deploy-hyperledger-fabric-network-from-scratch
+    , CAMBIANDO EL CONSORCIO POR FourOrgCons O COMO SE LLAME, MIRAR EN configtx.yaml
+
+ENTONCES TENDREMOS UNA RED PERO SIN CHAINCODE, PARA INSTALAR FABCAR:
+    -Basado en: https://medium.com/coinmonks/start-developing-hyperledger-fabric-chaincode-in-node-js-e63b655d98db
+            y en https://stackoverflow.com/questions/59031036/could-not-assemble-transaction-err-proposal-response-was-not-successful-error#comment104312077_59031036
+    1.- Comprimir el chaincode, en este caso fabcar
+        docker exec cli peer chaincode package -n mycc -l node -p /opt/gopath/src/github.com/chaincode/fabcar/javascript -v 0 -s -S ccpack.out
+    
+    2.- Desde fuera y para cada peer, este para peer1 de sales-point1
+        docker exec -e CORE_PEER_LOCALMSPID=Org3MSP -e CORE_PEER_ADDRESS=peer1.sales-point1.workspace:11051 -e CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/sales-point1.workspace/users/Admin@sales-point1.workspace/msp -e CORE_PEER_TLS_ROOTCERT_FILE=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/sales-point1.workspace/peers/peer1.sales-point1.workspace/tls/ca.crt cli peer chaincode install ccpack.out -l node
+    
+    3.- Instanciar el chaincode en los orderers
+        docker exec -e CORE_PEER_LOCALMSPID=Org1MSP -e CORE_PEER_MSPCONFIGPATH=/opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/factory.workspace/users/Admin@factory.workspace/msp cli peer chaincode instantiate -o orderer1.workspace:7050 -C workspace -n mycc -l node -v 0 -c '{"Args":['']}' -P 'AND('\'Org1MSP'.member'\'','\''Org2MSP.member'\'', '\''Org3MSP.member'\'','\''Org4MSP.member'\'')' --tls --cafile /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/ordererOrganizations/workspace/orderers/orderer1.workspace/msp/tlscacerts/tlsca.workspace-cert.pem --peerAddresses peer1.factory.workspace:7051 --tlsRootCertFiles /opt/gopath/src/github.com/hyperledger/fabric/peer/crypto/peerOrganizations/factory.workspace/peers/peer1.factory.workspace/tls/ca.crt
+
+    4.- Nos metemos en el cli con "docker exec -it cli bash"
+        -CORE_PEER_ADDRESS=peer1.factory.workspace:7051 peer chaincode invoke -C workspace -n mycc -c '{"Args":["initLedger"]}'
+
+    5.- Tenemos que definir al menos un admin. Para ello crear un connection-org1.json (se debería tener uno para cada organizacion en casos reales)
+        como el que está creado en la carpeta. Ahora podremos conectarnos con los .js de fabcar cambiando el path que viene en cada uno al connection-org1.json
+        de este directorio.
+
+
+Para hacer el dashboard:
+    https://medium.com/@eplt/5-minutes-to-install-hyperledger-explorer-with-fabric-on-ubuntu-18-04-digitalocean-9b100d0cfd7d
+     1.- Seguir los pasos modificando el connection-profile para que encaje con nuestra red, con que esté defininida para una organización
+          es suficiente.
+    

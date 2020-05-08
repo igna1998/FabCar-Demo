@@ -1,0 +1,58 @@
+{
+    "name": "first-network-org1",
+    "version": "1.0.0",
+    "client": {
+        "organization": "factory",
+        "connection": {
+            "timeout": {
+                "peer": {
+                    "endorser": "300"
+                }
+            }
+        }
+    },
+    "organizations": {
+        "factory": {
+            "mspid": "Org1MSP",
+            "peers": [
+                "peer1.factory.workspace",
+                "peer2.factory.workspace"
+            ],
+            "certificateAuthorities": [
+                "ca.factory.workspace"
+            ]
+        }
+    },
+    "peers": {
+        "peer1.factory.workspace": {
+            "url": "grpcs://localhost:7051",
+            "tlsCACerts": {
+                "path": "crypto-config/peerOrganizations/factory.workspace/tlsca/tlsca.factory.workspace-cert.pem"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "peer1.factory.workspace"
+            }
+        },
+        "peer2.factory.workspace": {
+            "url": "grpcs://localhost:8051",
+            "tlsCACerts": {
+                "path": "crypto-config/peerOrganizations/factory.workspace/tlsca/tlsca.factory.workspace-cert.pem"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "peer2.factory.workspace"
+            }
+        }
+    },
+    "certificateAuthorities": {
+        "ca.factory.workspace": {
+            "url": "https://localhost:7054",
+            "caName": "ca-factory",
+            "tlsCACerts": {
+                "path": "crypto-config/peerOrganizations/factory.workspace/tlsca/tlsca.factory.workspace-cert.pem"
+            },
+            "httpOptions": {
+                "verify": false
+            }
+        }
+    }
+}
