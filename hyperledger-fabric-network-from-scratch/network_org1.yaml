@@ -1,0 +1,98 @@
+version: "1.0"
+client:
+  organization: factory
+  credentialStore:
+    path: /tmp/hfc-kvs
+    cryptoStore:
+      path: /tmp/hfc-cvs
+channels:
+  workspace:
+    orderers: 
+    - orderer1.workspace
+    - orderer2.workspace
+    - orderer3.workspace
+    - orderer4.workspace
+    peers:
+      peer1.factory.workspace:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true
+      peer2.factory.workspace:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true
+      peer1.delivery.workspace:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true
+      peer2.delivery.workspace:
+        endorsingPeer: true
+        chaincodeQuery: true
+        ledgerQuery: true
+        eventSource: true
+organizations:
+  factory:
+    mspid: Org1MSP
+    peers:
+      - peer1.factory.workspace
+      - peer2.factory.workspace
+    certificateAuthorities:
+      - ca_factory
+  delivery:
+    mspid: Org2MSP
+    peers:
+      - peer1.delivery.workspace
+      - peer2.delivery.workspace
+    certificateAuthorities:
+      - ca_delivery
+orderers:
+  orderer1:
+    url: grpcs://localhost:7050
+    grpcOptions:
+      ssl-target-name-override: orderer1.workspace
+    tlsCACerts:
+      path: crypto-config/ordererOrganizations/workspace/tlsca/tlsca.workspace-cert.pem
+peers:
+  peer1.factory:
+    url: grpcs://localhost:7051
+    grpcOptions:
+      ssl-target-name-override: peer1.factory.workspace
+      grpc-max-send-message-length: -1
+    tlsCACerts:
+      path: crypto-config/peerOrganizations/factory.workspace/tlsca/tlsca.factory.workspace-cert.pem
+  peer2.factory:
+    url: grpcs://localhost:8051
+    grpcOptions:
+      ssl-target-name-override: peer2.factory.workspace
+      grpc-max-send-message-length: -1
+    tlsCACerts:
+      path: crypto-config/peerOrganizations/factory.workspace/tlsca/tlsca.factory.workspace-cert.pem
+  peer1.delivery:
+    url: grpcs://localhost:9051
+    grpcOptions:
+      ssl-target-name-override: peer1.delivery.workspace
+      grpc-max-send-message-length: -1
+    tlsCACerts:
+      path: crypto-config/peerOrganizations/delivery.workspace/tlsca/tlsca.delivery.workspace-cert.pem
+  peer2.delivery:
+    url: grpcs://localhost:10051
+    grpcOptions:
+      ssl-target-name-override: peer2.delivery.workspace
+      grpc-max-send-message-length: -1
+    tlsCACerts:
+      path: crypto-config/peerOrganizations/delivery.workspace/tlsca/tlsca.delivery.workspace-cert.pem
+certificateAuthorities:
+  ca_factory:
+    url: https://localhost:7054
+    httpOptions:
+      verify: false
+    tlsCACerts:
+      path: crypto-config/peerOrganizations/factory.workspace/tlsca/tlsca.factory.workspace-cert.pem
+    registrar:
+      - enrollId: admin
+        enrollSecret: adminpw
+    caName: ca_factory
+
