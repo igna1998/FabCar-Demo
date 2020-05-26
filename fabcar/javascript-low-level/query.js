@@ -7,22 +7,32 @@
 /*
  * Chaincode query
  */
-
-var Fabric_Client = require('fabric-client');
 var fs = require('fs');
 var path = require('path');
 
-var firstnetwork_path = path.resolve('..', '..', 'first-network');
-var org1tlscacert_path = path.resolve(firstnetwork_path, 'crypto-config', 'peerOrganizations', 'org1.example.com', 'tlsca', 'tlsca.org1.example.com-cert.pem');
+/*
+const privateKeyPath = path.resolve(__dirname, '../../hyperledger-fabric-network-from-scratch/crypto-config/peerOrganizations/factory.workspace/users/User3@factory.workspace/msp/keystore/94d5edeac5d59c0db9327e1b3d93b7a85a2d85c6c30fe6b50374c1a0709906dc_sk');
+const priv = fs.readFileSync(privateKeyPath, 'utf8');
+const certPath = path.resolve(__dirname, '../../hyperledger-fabric-network-from-scratch/crypto-config/peerOrganizations/factory.workspace/users/User3@factory.workspace/msp/signcerts/User3@factory.workspace-cert.pem');
+const cert = fs.readFileSync(certPath, 'utf8');
+*/
+
+
+/////////////////////////////////
+
+var Fabric_Client = require('fabric-client');
+
+var network_path = path.resolve('..', '..', 'hyperledger-fabric-network-from-scratch');
+var org1tlscacert_path = path.resolve(network_path, 'crypto-config', 'peerOrganizations', 'factory.workspace', 'tlsca', 'tlsca.factory.workspace-cert.pem');
 var org1tlscacert = fs.readFileSync(org1tlscacert_path, 'utf8');
 
 //
 var fabric_client = new Fabric_Client();
 
 // setup the fabric network
-var channel = fabric_client.newChannel('mychannel');
+var channel = fabric_client.newChannel('workspace');
 var peer = fabric_client.newPeer('grpcs://localhost:7051', {
-	'ssl-target-name-override': 'peer0.org1.example.com',
+	'ssl-target-name-override': 'peer1.factory.workspace',
 	pem: org1tlscacert
 });
 channel.addPeer(peer);
@@ -44,19 +54,19 @@ Fabric_Client.newDefaultKeyValueStore({ path: store_path
 	fabric_client.setCryptoSuite(crypto_suite);
 
 	// get the enrolled user from persistence, this user will sign all requests
-	return fabric_client.getUserContext('user1', true);
+	return fabric_client.getUserContext('user3', true);
 }).then((user_from_store) => {
 	if (user_from_store && user_from_store.isEnrolled()) {
-		console.log('Successfully loaded user1 from persistence');
+		console.log('Successfully loaded user3 from persistence');
 	} else {
-		throw new Error('Failed to get user1.... run registerUser.js');
+		throw new Error('Failed to get user3.... run registerUser.js');
 	}
 
 	// queryCar chaincode function - requires 1 argument, ex: args: ['CAR4'],
 	// queryAllCars chaincode function - requires no arguments , ex: args: [''],
 	const request = {
 		//targets : --- letting this default to the peers assigned to the channel
-		chaincodeId: 'fabcar',
+		chaincodeId: 'mycc',
 		fcn: 'queryAllCars',
 		args: ['']
 	};

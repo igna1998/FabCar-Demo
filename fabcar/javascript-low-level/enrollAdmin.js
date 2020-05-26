@@ -14,8 +14,8 @@ var Fabric_CA_Client = require('fabric-ca-client');
 var fs = require('fs');
 var path = require('path');
 
-var firstnetwork_path = path.resolve('..', '..', 'first-network');
-var org1tlscacert_path = path.resolve(firstnetwork_path, 'crypto-config', 'peerOrganizations', 'org1.example.com', 'tlsca', 'tlsca.org1.example.com-cert.pem');
+var network_path = path.resolve('..', '..', 'hyperledger-fabric-network-from-scratch');
+var org1tlscacert_path = path.resolve(network_path, 'crypto-config', 'peerOrganizations', 'factory.workspace', 'tlsca', 'tlsca.factory.workspace-cert.pem');
 var org1tlscacert = fs.readFileSync(org1tlscacert_path, 'utf8');
 
 //
@@ -41,7 +41,7 @@ Fabric_Client.newDefaultKeyValueStore({ path: store_path
     	verify: false
     };
     // be sure to change the http to https when the CA is running TLS enabled
-    fabric_ca_client = new Fabric_CA_Client('https://localhost:7054', tlsOptions , 'ca-org1', crypto_suite);
+    fabric_ca_client = new Fabric_CA_Client('https://localhost:7054', tlsOptions , 'ca-factory', crypto_suite);
 
     // first check to see if the admin is already enrolled
     return fabric_client.getUserContext('admin', true);

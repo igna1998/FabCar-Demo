@@ -12,12 +12,45 @@ const Fabric_Client = require('fabric-client');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
+///////
+const elliptic = require('elliptic');
+const { KEYUTIL } = require('jsrsasign');
 
-var firstnetwork_path = path.resolve('..', '..', 'first-network');
-var org1tlscacert_path = path.resolve(firstnetwork_path, 'crypto-config', 'peerOrganizations', 'org1.example.com', 'tlsca', 'tlsca.org1.example.com-cert.pem');
+
+
+
+var network_path = path.resolve('..', '..', 'hyperledger-fabric-network-from-scratch');
+var org1tlscacert_path = path.resolve(network_path, 'crypto-config', 'peerOrganizations', 'factory.workspace', 'tlsca', 'tlsca.factory.workspace-cert.pem');
 var org1tlscacert = fs.readFileSync(org1tlscacert_path, 'utf8');
 
+var org2tlscacert_path = path.resolve(network_path, 'crypto-config', 'peerOrganizations', 'delivery.workspace', 'tlsca', 'tlsca.delivery.workspace-cert.pem');
+var org2tlscacert = fs.readFileSync(org2tlscacert_path, 'utf8');
+
+var org3tlscacert_path = path.resolve(network_path, 'crypto-config', 'peerOrganizations', 'sales-point1.workspace', 'tlsca', 'tlsca.sales-point1.workspace-cert.pem');
+var org3tlscacert = fs.readFileSync(org3tlscacert_path, 'utf8');
+
+var org4tlscacert_path = path.resolve(network_path, 'crypto-config', 'peerOrganizations', 'sales-point2.workspace', 'tlsca', 'tlsca.sales-point2.workspace-cert.pem');
+var org4tlscacert = fs.readFileSync(org4tlscacert_path, 'utf8');
+
+
+const privateKeyPath = path.resolve(__dirname, './hfc-key-store/privkey.pem');
+const priv = fs.readFileSync(privateKeyPath, 'utf8');
+const certPath = path.resolve(__dirname, './hfc-key-store/cert.pem');
+const cert = fs.readFileSync(certPath, 'utf8');
+
+const mspId = "Org1MSP";
+
 invoke();
+
+function _preventMalleability(sig) {
+	const halfOrder = elliptic.curves.p256.n.shrn(1);
+	if (sig.s.cmp(halfOrder) === 1) {
+		const bigNum = elliptic.curves.p256.n;
+		sig.s = bigNum.sub(sig.s);
+	}
+	return sig;
+}
+
 
 async function invoke() {
 	console.log('\n\n --- invoke.js - start');
@@ -29,13 +62,34 @@ async function invoke() {
 
 		// setup the fabric network
 		// -- channel instance to represent the ledger named "mychannel"
-		const channel = fabric_client.newChannel('mychannel');
+		const channel = fabric_client.newChannel('workspace');
 		console.log('Created client side object to represent the channel');
 		// -- peer instance to represent a peer on the channel
-		const peer = fabric_client.newPeer('grpcs://localhost:7051', {
-			'ssl-target-name-override': 'peer0.org1.example.com',
+		var peer1 = fabric_client.newPeer('grpcs://localhost:7051', {
+			'ssl-target-name-override': 'peer1.factory.workspace',
 			pem: org1tlscacert
 		});
+		var peer2 = fabric_client.newPeer('grpcs://localhost:9051', {
+			'ssl-target-name-override': 'peer1.delivery.workspace',
+			pem: org2tlscacert
+		});
+		var peer3 = fabric_client.newPeer('grpcs://localhost:11051', {
+			'ssl-target-name-override': 'peer1.sales-point1.workspace',
+			pem: org3tlscacert
+		});
+		var peer4 = fabric_client.newPeer('grpcs://localhost:13051', {
+			'ssl-target-name-override': 'peer1.sales-point2.workspace',
+			pem: org4tlscacert
+		});
+		
+		channel.addPeer(peer1);
+		channel.addPeer(peer2);
+		channel.addPeer(peer3);
+		channel.addPeer(peer4);
+
+		
+
+		
 		console.log('Created client side object to represent the peer');
 
 		// This sample application uses a file based key value stores to hold
@@ -56,18 +110,18 @@ async function invoke() {
 
 		// get the enrolled user from persistence and assign to the client instance
 		//    this user will sign all requests for the fabric network
-		const user = await fabric_client.getUserContext('user1', true);
+		const user = await fabric_client.getUserContext('user3', true);
 		if (user && user.isEnrolled()) {
-			console.log('Successfully loaded "user1" from user store');
+			console.log('Successfully loaded "user3" from user store');
 		} else {
-			throw new Error('\n\nFailed to get user1.... run registerUser.js');
+			throw new Error('\n\nFailed to get user3.... run registerUser.js');
 		}
 
 		console.log('Successfully setup client side');
 		console.log('\n\nStart invoke processing');
 
 		// Use service discovery to initialize the channel
-		await channel.initialize({ discover: true, asLocalhost: true, target: peer });
+		await channel.initialize({ discover: true, asLocalhost: true });
 		console.log('Used service discovery to initialize the channel');
 
 		// get a transaction id object based on the current user assigned to fabric client
@@ -80,20 +134,106 @@ async function invoke() {
 		//   'createCar' - requires 5 args, ex: args: ['CAR12', 'Honda', 'Accord', 'Black', 'Tom']
 		//   'changeCarOwner' - requires 2 args , ex: args: ['CAR10', 'Dave']
 		const proposal_request = {
-			targets: [peer],
-			chaincodeId: 'fabcar',
+			targets: [peer1, peer2, peer3, peer4],
+			chaincodeId: 'mycc',
 			fcn: 'createCar',
-			args: ['CAR12', 'Honda', 'Accord', 'Black', 'Tom'],
-			chainId: 'mychannel',
+			args: ['CAR17', 'Audi', 'A10', 'Grey', 'Ignacio'],
+			chainId: 'workspace',
 			txId: tx_id
 		};
 
+
+		const { proposal, txId } = channel.generateUnsignedProposal(proposal_request, mspId, cert);
+
+		const proposalBytes = proposal.toBuffer();
+		const digest = fabric_client.getCryptoSuite().hash(proposalBytes);
+
+
+		//this has to be done in the client
+		//////////////////
+		const { prvKeyHex } = KEYUTIL.getKey(priv);
+
+		const EC = elliptic.ec;
+		
+		const ecdsaCurve = elliptic.curves['p256'];
+
+		const ecdsa = new EC(ecdsaCurve);
+		const signKey = ecdsa.keyFromPrivate(prvKeyHex, 'hex');
+		var sig = ecdsa.sign(Buffer.from(digest, 'hex'), signKey);
+		
+		sig = _preventMalleability(sig);
+		
+		const signature = Buffer.from(sig.toDER());
+
+		/////////////////
+		const signedProposal = {
+		    signature,
+		    proposal_bytes: proposalBytes,
+		};
+
+		var sendSignedProposalReq = {
+			signedProposal: signedProposal,
+			targets: [peer1, peer2, peer3, peer4]
+		}		
+		const proposalResponses = await channel.sendSignedProposal(sendSignedProposalReq);
+
+		const commitReq = {
+			proposalResponses,
+			proposal,
+		};
+		
+		const commitProposal = await channel.generateUnsignedTransaction(commitReq);
+
+		//const signedCommitProposal = signProposal(commitProposal);
+
+		var transactionBytes = commitProposal.toBuffer();
+    	var transaction_digest = fabric_client.getCryptoSuite().hash(transactionBytes);
+    	var transaction_sig = ecdsa.sign(Buffer.from(transaction_digest, 'hex'), signKey);        
+    	transaction_sig = _preventMalleability(transaction_sig);
+    	var transaction_signature = Buffer.from(transaction_sig.toDER());
+
+    	var signedTransactionProposal = {
+    	  signature: transaction_signature,
+    	  proposal_bytes: transactionBytes,
+    	};
+
+    	var signedTransaction = {
+    	  signedProposal: signedTransactionProposal,
+    	  request: commitReq,
+		}
+		
+		channel.sendSignedTransaction(signedTransaction);
+
+
+		/*
+		const response = await channel.sendSignedTransaction({
+			signedProposal: signedCommitProposal,
+			request: commitReq,
+		});
+		
+
+		const unsignedEvent = eh.generateUnsignedRegistration({
+			certificate: cert,
+			mspId,
+		});
+
+		const signedProposal2 = signProposal(unsignedEvent);
+		const signedEvent = {
+		    signature: signedProposal2.signature,
+		    payload: signedProposal2.proposal_bytes,
+		};
+
+		channelEventHub.connect({signedEvent});
+		*/
+		
+		/*
 		// notice the proposal_request has the peer defined in the 'targets' attribute
 
 		// Send the transaction proposal to the endorsing peers.
 		// The peers will run the function requested with the arguments supplied
 		// based on the current state of the ledger. If the chaincode successfully
 		// runs this simulation it will return a postive result in the endorsement.
+
 		const endorsement_results = await channel.sendTransactionProposal(proposal_request);
 
 		// The results will contain a few different items
@@ -141,7 +281,7 @@ async function invoke() {
 		promises.push(sendPromise);
 
 		// get an event hub that is associated with our peer
-		let event_hub = channel.newChannelEventHub(peer);
+		let event_hub = channel.newChannelEventHub(peer1);
 
 		// create the asynchronous work item
 		let txPromise = new Promise((resolve, reject) => {
@@ -217,6 +357,7 @@ async function invoke() {
 			console.error(message);
 			throw new Error(message);
 		}
+		*/
 	} catch(error) {
 		console.log('Unable to invoke ::'+ error.toString());
 	}

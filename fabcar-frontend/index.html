@@ -222,6 +222,37 @@
               const carID = document.getElementById('formNewOwner').elements['carID'].value;
               const owner = document.getElementById('formNewOwner').elements['owner'].value;
               const privateKey = document.getElementById('formNewOwner').elements['privatekey'].value;
+              
+              var theUrl = 'http://localhost:8090/api/changeowner2_1/' + carID + '/' + owner;
+              var xmlHttp = new XMLHttpRequest();
+              xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+              xmlHttp.send( null );
+
+              var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
+              
+              
+              console.log(parsedResponse.digest);
+
+              var signature = signTransaction(parsedResponse.digest, privateKey);
+
+              req = {
+                signature:signature
+              };
+
+
+              var theUrl = 'http://localhost:8090/api/changeowner2_2/';
+              var xmlHttp = new XMLHttpRequest();
+              xmlHttp.open( "POST", theUrl, true ); // false for synchronous request
+              xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+              xmlHttp.onreadystatechange = function() {//Call a function when the state changes.
+                if(xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                  alert(xmlHttp.responseText);
+                }
+              }
+
+              xmlHttp.send(JSON.stringify(req));
+              
               /*
               console.log(privateKey);
 
@@ -245,12 +276,14 @@
 
               //Version de siempre
 
+              */
 
+              /*
               var newCar = {
                 "carID":carID,
                 "owner":owner
               };
-              var theUrl = 'http://localhost:8090/api/changeowner2/';
+              var theUrl = 'http://localhost:8090/api/changeowner/';
               console.log(theUrl);
               var xmlHttp = new XMLHttpRequest();
               xmlHttp.open( "POST", theUrl, true ); // false for synchronous request
@@ -261,18 +294,9 @@
                   alert(xmlHttp.responseText);
                 }
               }
-
               xmlHttp.send(JSON.stringify(newCar));
+
               */
-
-              var theUrl = 'http://localhost:8090/api/changeowner2_1/' + carID + '/' + owner;
-              var xmlHttp = new XMLHttpRequest();
-              xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
-              xmlHttp.send( null );
-              var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
-              console.log(parsedResponse);
-
-
 
           }
         </script>
