@@ -36,11 +36,3 @@ window.signTransaction = function(digest, priv){
     return signature;
 }
 
-const { prvKeyHex } = KEYUTIL.getKey(priv);
-
-const EC = elliptic.ec;
-
-const ecdsaCurve = elliptic.curves['p256']
-const ecdsa = new EC(ecdsaCurve);
-const signKey = ecdsa.keyFromPrivate(prvKeyHex, 'hex')
-var transactionBytes = commitProposal.toBuffer();

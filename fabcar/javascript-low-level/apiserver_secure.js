@@ -485,9 +485,10 @@ app.post('/api/changeowner/', async function (req, res) {
 
 
 var proposalBytesTmp = null;
-var signatureTmp = null;
 var proposalTmp = null;
-
+//
+var transactionBytesTmp = null;
+var commitReqTmp = null;
 
 app.get('/api/changeowner2_1/:carID/:owner', async function (req, res) {
     try {
@@ -553,22 +554,7 @@ app.get('/api/changeowner2_1/:carID/:owner', async function (req, res) {
 		//this has to be done in the client
 		//////////////////
 
-		/*
-		const { prvKeyHex } = KEYUTIL.getKey(priv);
-
-		const EC = elliptic.ec;
-		
-		const ecdsaCurve = elliptic.curves['p256'];
-
-		const ecdsa = new EC(ecdsaCurve);
-		const signKey = ecdsa.keyFromPrivate(prvKeyHex, 'hex');
-		var sig = ecdsa.sign(Buffer.from(digest, 'hex'), signKey);
-		
-		sig = _preventMalleability(sig);
-		
-		const signature = Buffer.from(sig.toDER());
-		*/
-
+	
 		const resp = {
 			digest:digest,
 		}
@@ -620,41 +606,20 @@ app.post('/api/changeowner2_2/', async function (req, res) {
 		
 		const commitProposal = await channel2.generateUnsignedTransaction(commitReq);
 
-		//const signedCommitProposal = signProposal(commitProposal);
-		///////THIS HAS TO BE DONE IN THE FRONTEND
-		const { prvKeyHex } = KEYUTIL.getKey(priv);
-
-		const EC = elliptic.ec;
-		
-		const ecdsaCurve = elliptic.curves['p256'];
-
-		const ecdsa = new EC(ecdsaCurve);
-		const signKey = ecdsa.keyFromPrivate(prvKeyHex, 'hex');
-
-
-
-
 		var transactionBytes = commitProposal.toBuffer();
 		var transaction_digest = fabric_client2.getCryptoSuite().hash(transactionBytes);
-		var transaction_sig = ecdsa.sign(Buffer.from(transaction_digest, 'hex'), signKey);        
-		transaction_sig = _preventMalleability(transaction_sig);
-		var transaction_signature = Buffer.from(transaction_sig.toDER());
-		////////////////////
-		var signedTransactionProposal = {
-		  signature: transaction_signature,
-		  proposal_bytes: transactionBytes,
-		};
-
-		var signedTransaction = {
-		  signedProposal: signedTransactionProposal,
-		  request: commitReq,
-		}
 		
-		channel2.sendSignedTransaction(signedTransaction);
 
 		res.setHeader("Access-Control-Allow-Origin", "*");
-		res.send('Transaction has been submitted');
-		
+		resp = {
+			digest:transaction_digest
+		};
+		transactionBytesTmp = transactionBytes;
+		commitReqTmp = commitReq;
+
+
+		res.status(200).json({response: resp});
+		//res.send('Transaction has been submitted');
 
 	} catch(error) {
 		console.log('Unable to invoke ::'+ error.toString());
@@ -665,8 +630,32 @@ app.post('/api/changeowner2_2/', async function (req, res) {
 
 
 
+app.post('/api/changeowner2_3/', async function (req, res) {
+    try {
 
+		var transactionBytes = transactionBytesTmp;
+		var commitReq = commitReqTmp;
+		signature = Buffer.from(req.body.signature);
 
+		var signedTransactionProposal = {
+			signature: signature,
+			proposal_bytes: transactionBytes,
+		};
+  
+		var signedTransaction = {
+			signedProposal: signedTransactionProposal,
+			request: commitReq,
+		}
+		
+		channel2.sendSignedTransaction(signedTransaction);
+
+		res.setHeader("Access-Control-Allow-Origin", "*");
+		res.send('Transaction has been submitted');
+	} catch(error) {
+		console.log('Unable to invoke ::'+ error.toString());
+	}
+	console.log('\n\n --- invoke.js - end');
+})
 
 
 

@@ -230,73 +230,49 @@
 
               var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
               
-              
-              console.log(parsedResponse.digest);
-
               var signature = signTransaction(parsedResponse.digest, privateKey);
 
               req = {
                 signature:signature
               };
 
+              ///////////////////////////////
 
               var theUrl = 'http://localhost:8090/api/changeowner2_2/';
               var xmlHttp = new XMLHttpRequest();
-              xmlHttp.open( "POST", theUrl, true ); // false for synchronous request
+              xmlHttp.open( "POST", theUrl, false ); // false for synchronous request
+              xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+              xmlHttp.send(JSON.stringify(req));
+              
+              //var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
+              var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
+
+              //////////////////
+              var signature = signTransaction(parsedResponse.digest, privateKey);
+              var req = {
+                signature:signature
+              }
+              var theUrl = 'http://localhost:8090/api/changeowner2_3/';
+              var xmlHttp = new XMLHttpRequest();
+              xmlHttp.open( "POST", theUrl, false ); // false for synchronous request
               xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
-              xmlHttp.onreadystatechange = function() {//Call a function when the state changes.
-                if(xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-                  alert(xmlHttp.responseText);
+              xmlHttp.onreadystatechange = function() {
+                if (xmlHttp.readyState === 4) {
+                  var response = xmlHttp.responseText;
+                  if (xmlHttp.status === 200) {
+                    alert('Transaction successful');
+                  } else {
+                    alert('Transaction failed');
+                  }
                 }
               }
 
               xmlHttp.send(JSON.stringify(req));
               
-              /*
-              console.log(privateKey);
-
-              var theUrl = 'http://localhost:8090/api/getchangeunsigned/' + carID + '/' + owner;
-              var xmlHttp = new XMLHttpRequest();
-              xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
-              xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-              xmlHttp.send( null );
-              var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
-              console.log(parsedResponse);
-
-              const signedTransaction = signTransaction(parsedResponse, privateKey);
-              */
-              
-              /*const signedTransactionJson = {
-                "signedTransaction" : signedTransaction, 
-                "proposalBytes" : parsedResponse
-              };*/
-
-              /*
-
-              //Version de siempre
-
-              */
-
-              /*
-              var newCar = {
-                "carID":carID,
-                "owner":owner
-              };
-              var theUrl = 'http://localhost:8090/api/changeowner/';
-              console.log(theUrl);
-              var xmlHttp = new XMLHttpRequest();
-              xmlHttp.open( "POST", theUrl, true ); // false for synchronous request
-              xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-
-              xmlHttp.onreadystatechange = function() {//Call a function when the state changes.
-                if(xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-                  alert(xmlHttp.responseText);
-                }
-              }
-              xmlHttp.send(JSON.stringify(newCar));
-
-              */
+              //var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
+                            
+             
 
           }
         </script>
