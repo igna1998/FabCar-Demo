@@ -28,9 +28,9 @@ Now deploy the network and install the chaicode.
  ./up.sh
  ./install-fabcar.sh
 ```
-### Step 3: Enroll admin and first user
+### Step 3: Enroll admin and first user(optional because I give one preregistered user)
 
-Go to fabcar/javascript and:
+Go to fabcar/javascript-low-level and:
   ```
   npm install
   node enrollAdmin.js
@@ -39,11 +39,15 @@ Go to fabcar/javascript and:
 ### Step 4: REST API and Frontend
 Now we can start our REST API. For this stay in the folder and execute 
   ```
-  node apiserver.js
+  node apiserver_secure.js
   ```
-Now move to fabcar-front end and:
+Open another terminal in the repository folder and move to fabcar-front end and:
   ```
   npm install
-  node start
+  npm start
   ```
-If everything goes well we should see our frontend
+If everything goes well we should see the frontend.
+
+The Private Keys are saved into hfc-key-store into the fabcar/javascript-low-level folder.
+There is one previously created private key stored into privkey.pem file.
+Paste the full content of this file when making transactions to obtain a successful result.
