@@ -38,9 +38,8 @@ var org4tlscacert = fs.readFileSync(org4tlscacert_path, 'utf8');
 //change this for every user
 const privateKeyPath = path.resolve(__dirname, './hfc-key-store/privkey.pem');
 const priv = fs.readFileSync(privateKeyPath, 'utf8');
-const certPath = path.resolve(__dirname, './hfc-key-store/cert.pem');
-const cert = fs.readFileSync(certPath, 'utf8');
-
+const userPath = path.resolve(__dirname, './hfc-key-store/user3');
+const cert = JSON.parse(fs.readFileSync(userPath, 'utf8')).enrollment.identity.certificate;
 const mspId = "Org1MSP";
 
 
@@ -213,7 +212,7 @@ channel2.addPeer(peer4);
 
 
 
-
+/*
 app.post('/api/addcar/', async function (req, res) {
 	try {
 
@@ -343,13 +342,10 @@ app.post('/api/addcar/', async function (req, res) {
 	}
 	console.log('\n\n --- invoke.js - end');
 })
+*/
 
 
-
-
-
-
-app.post('/api/changeowner/', async function (req, res) {
+app.get('/api/addcar2_1/:carid/:make/:model/:colour/:owner', async function (req, res) {
     try {
 		console.log('Created client side object to represent the peer');
 
@@ -381,6 +377,7 @@ app.post('/api/changeowner/', async function (req, res) {
 		console.log('Successfully setup client side');
 		console.log('\n\nStart invoke processing');
 
+	
 		// Use service discovery to initialize the channel
 		await channel2.initialize({ discover: true, asLocalhost: true });
 		console.log('Used service discovery to initialize the channel');
@@ -394,11 +391,12 @@ app.post('/api/changeowner/', async function (req, res) {
 		// The fabcar chaincode is able to perform a few functions
 		//   'createCar' - requires 5 args, ex: args: ['CAR12', 'Honda', 'Accord', 'Black', 'Tom']
 		//   'changeCarOwner' - requires 2 args , ex: args: ['CAR10', 'Dave']
+		
 		const proposal_request = {
 			targets: [peer1, peer2, peer3, peer4],
 			chaincodeId: 'mycc',
-			fcn: 'changeCarOwner',
-			args: [req.body.carID, req.body.owner],
+			fcn: 'createCar',
+			args: [req.params.carid, req.params.make, req.params.model, req.params.colour, req.params.owner],
 			chainId: 'workspace',
 			txId: tx_id
 		};
@@ -410,76 +408,28 @@ app.post('/api/changeowner/', async function (req, res) {
 		const digest = fabric_client2.getCryptoSuite().hash(proposalBytes);
 
 
-		//this has to be done in the client
-		//////////////////
-		const { prvKeyHex } = KEYUTIL.getKey(priv);
+	
+		const resp = {
+			digest:digest,
+		}
 
-		const EC = elliptic.ec;
-		
-		const ecdsaCurve = elliptic.curves['p256'];
-
-		const ecdsa = new EC(ecdsaCurve);
-		const signKey = ecdsa.keyFromPrivate(prvKeyHex, 'hex');
-		var sig = ecdsa.sign(Buffer.from(digest, 'hex'), signKey);
-		
-		sig = _preventMalleability(sig);
-		
-
-		
-		const signature = Buffer.from(sig.toDER());
+		proposalBytesTmp = proposalBytes;
+		//signatureTmp = signature;
+		proposalTmp = proposal;
 
 		/////////////////
-		const signedProposal = {
-			signature,
-			proposal_bytes: proposalBytes,
-		};
-
-		var sendSignedProposalReq = {
-			signedProposal: signedProposal,
-			targets: [peer1, peer2, peer3, peer4]
-		}		
-		const proposalResponses = await channel2.sendSignedProposal(sendSignedProposalReq);
-
-		const commitReq = {
-			proposalResponses,
-			proposal,
-		};
-		
-		const commitProposal = await channel2.generateUnsignedTransaction(commitReq);
-
-		//const signedCommitProposal = signProposal(commitProposal);
-		///////THIS HAS TO BE DONE IN THE FRONTEND
-		var transactionBytes = commitProposal.toBuffer();
-		var transaction_digest = fabric_client2.getCryptoSuite().hash(transactionBytes);
-		var transaction_sig = ecdsa.sign(Buffer.from(transaction_digest, 'hex'), signKey);        
-		transaction_sig = _preventMalleability(transaction_sig);
-		var transaction_signature = Buffer.from(transaction_sig.toDER());
-		////////////////////
-
-
-
-
-
-		var signedTransactionProposal = {
-		  signature: transaction_signature,
-		  proposal_bytes: transactionBytes,
-		};
-
-		var signedTransaction = {
-		  signedProposal: signedTransactionProposal,
-		  request: commitReq,
-		}
-		
-		channel2.sendSignedTransaction(signedTransaction);
-
 		res.setHeader("Access-Control-Allow-Origin", "*");
-		res.send('Transaction has been submitted');
+        res.status(200).json({response: resp});
 
 	} catch(error) {
 		console.log('Unable to invoke ::'+ error.toString());
 	}
-	console.log('\n\n --- invoke.js - end');
+	console.log('\n\n --- invoke.js1 - end');
 })
+
+
+
+
 
 
 

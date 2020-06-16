@@ -74,6 +74,12 @@
                                 <input type="text" class="form-control" id="owner" placeholder="Owner">
                             </div>
 
+                            <div class="form-group">
+                              <label for="privatekey">Private key</label>
+                              <textarea class="form-control" id="privatekey" rows="5"></textarea>
+                            </div>
+
+
                             <button type="submit" class="btn btn-primary" onclick="uploadCar()">Submit</button>
                           </form>
 
@@ -185,15 +191,67 @@
               $( "#newTab" ).addClass("active");
             }
             function uploadCar(){
-                const carID = document.getElementById('formNewCar').elements['carID'].value;
-                const brand = document.getElementById('formNewCar').elements['brand'].value;
-                const model = document.getElementById('formNewCar').elements['model'].value;
-                const color = document.getElementById('formNewCar').elements['color'].value;
-                const owner = document.getElementById('formNewCar').elements['owner'].value;
+              const carID = document.getElementById('formNewCar').elements['carID'].value;
+              const brand = document.getElementById('formNewCar').elements['brand'].value;
+              const model = document.getElementById('formNewCar').elements['model'].value;
+              const color = document.getElementById('formNewCar').elements['color'].value;
+              const owner = document.getElementById('formNewCar').elements['owner'].value;
 
+              const privateKey = document.getElementById('formNewCar').elements['privatekey'].value;
+              
+              var newCar = {"carid":carID, "make":brand, "model":model, "colour":color, "owner":owner}
+              
+              var theUrl = 'http://localhost:8090/api/addcar2_1/' + carID + "/" + brand + "/" + model + "/" + color + "/" + owner;
+              var xmlHttp = new XMLHttpRequest();
+              xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+              xmlHttp.send(null);
+
+              var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
+              console.log(parsedResponse);
+              var signature = signTransaction(parsedResponse.digest, privateKey);
+
+              req = {
+                signature:signature
+              };
+              
+              var theUrl = 'http://localhost:8090/api/changeowner2_2/';
+              var xmlHttp = new XMLHttpRequest();
+              xmlHttp.open( "POST", theUrl, false ); // false for synchronous request
+              xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+              xmlHttp.send(JSON.stringify(req));
+              
+              //var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
+              var parsedResponse = JSON.parse(xmlHttp.responseText)["response"];
+              
+              //////////////////
+              var signature = signTransaction(parsedResponse.digest, privateKey);
+              var req = {
+                signature:signature
+              }
+              var theUrl = 'http://localhost:8090/api/changeowner2_3/';
+              var xmlHttp = new XMLHttpRequest();
+              xmlHttp.open( "POST", theUrl, false ); // false for synchronous request
+              xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            
+              xmlHttp.onreadystatechange = function() {
+                if (xmlHttp.readyState === 4) {
+                  var response = xmlHttp.responseText;
+                  if (xmlHttp.status === 200) {
+                    alert('Transaction successful');
+                  } else {
+                    alert('Transaction failed');
+                  }
+                }
+              }
+            
+              xmlHttp.send(JSON.stringify(req));
                 
-                var newCar = {"carid":carID, "make":brand, "model":model, "colour":color, "owner":owner}
-                var theUrl = 'http://localhost:8090/api/addcar/';
+                
+                
+                
+                
+                
+                /*var theUrl = 'http://localhost:8090/api/addcar/';
                 var xmlHttp = new XMLHttpRequest();
                 xmlHttp.open( "POST", theUrl, true ); // false for synchronous request
                 xmlHttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
@@ -204,7 +262,7 @@
                   }
                 }
 
-                xmlHttp.send(JSON.stringify(newCar));                
+                xmlHttp.send(JSON.stringify(newCar)); */               
             }
         </script>
 
