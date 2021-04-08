@@ -60,7 +60,6 @@ var allowedOrigins = ['http://localhost:3000',
 
 app.use(cors({
   origin: function(origin, callback){    // allow requests with no origin 
-    // (like mobile apps or curl requests)
     if(!origin) return callback(null, true);    if(allowedOrigins.indexOf(origin) === -1){
       var msg = 'The CORS policy for this site does not ' +
                 'allow access from the specified Origin.';
@@ -138,49 +137,6 @@ app.get('/api/queryallcars', async function (req, res) {
 
 });
 
-/*
-app.get('/api/query/:car_index', async function (req, res) {
-    try {
-
-        // Create a new file system based wallet for managing identities.
-        const walletPath = path.join(process.cwd(), 'wallet');
-        const wallet = new FileSystemWallet(walletPath);
-        console.log(`Wallet path: ${walletPath}`);
-
-        // Check to see if we've already enrolled the user.
-        const userExists = await wallet.exists('user1');
-        if (!userExists) {
-            console.log('An identity for the user "user1" does not exist in the wallet');
-            console.log('Run the registerUser.js application before retrying');
-            return;
-        }
-
-        // Create a new gateway for connecting to our peer node.
-        const gateway = new Gateway();
-        await gateway.connect(ccpPath, { wallet, identity: 'user1', discovery: { enabled: true, asLocalhost: true } });
-
-        // Get the network (channel) our contract is deployed to.
-        const network = await gateway.getNetwork('workspace');
-
-        // Get the contract from the network.
-        const contract = network.getContract('mycc');
-
-        // Evaluate the specified transaction.
-        // queryCar transaction - requires 1 argument, ex: ('queryCar', 'CAR4')
-        // queryAllCars transaction - requires no arguments, ex: ('queryAllCars')
-        const result = await contract.evaluateTransaction('queryCar', req.params.car_index);
-        console.log(`Transaction has been evaluated, result is: ${result.toString()}`);
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.status(200).json({response: result.toString()});
-
-    } catch (error) {
-        console.error(`Failed to evaluate transaction: ${error}`);
-        res.status(500).json({error: error});
-        process.exit(1);
-    }
-});
-*/
-
 const fabric_client2 = new Fabric_Client();
 
 // setup the fabric network
@@ -212,137 +168,16 @@ channel2.addPeer(peer4);
 
 
 
-/*
-app.post('/api/addcar/', async function (req, res) {
-	try {
-
-		console.log('Created client side object to represent the peer')
-		// This sample application uses a file based key value stores to hold
-		// the user information and credentials. These are the same stores as used
-		// by the 'registerUser.js' sample code
-		const store_path = path.join(__dirname, 'hfc-key-store');
-		console.log('Setting up the user store at path:'+store_path);
-		// create the key value store as defined in the fabric-client/config/default.json 'key-value-store' setting
-		const state_store = await Fabric_Client.newDefaultKeyValueStore({ path: store_path});
-		// assign the store to the fabric client
-		fabric_client2.setStateStore(state_store);
-		const crypto_suite = Fabric_Client.newCryptoSuite();
-		// use the same location for the state store (where the users' certificate are kept)
-		// and the crypto store (where the users' keys are kept)
-		const crypto_store = Fabric_Client.newCryptoKeyStore({path: store_path});
-		crypto_suite.setCryptoKeyStore(crypto_store);
-		fabric_client2.setCryptoSuite(crypto_suite);
-		console.log('Setting up client side network objects');
-		// fabric client instance
-		// starting point for all interactions with the fabric network
-		
-
-		// get the enrolled user from persistence and assign to the client instance
-		//    this user will sign all requests for the fabric network
-		const user = await fabric_client2.getUserContext('user3', true);
-		if (user && user.isEnrolled()) {
-			console.log('Successfully loaded "user3" from user store');
-		} else {
-			throw new Error('\n\nFailed to get user3.... run registerUser.js');
-		}
-
-		console.log('Successfully setup client side');
-		console.log('\n\nStart invoke processing');
-
-		// Use service discovery to initialize the channel
-		await channel2.initialize({ discover: true, asLocalhost: true });
-		console.log('Used service discovery to initialize the channel');
-
-		// get a transaction id object based on the current user assigned to fabric client
-		// Transaction ID objects contain more then just a transaction ID, also includes
-		// a nonce value and if built from the client's admin user.
-		const tx_id = fabric_client2.newTransactionID();
-		console.log(util.format("\nCreated a transaction ID: %s", tx_id.getTransactionID()));
-
-		// The fabcar chaincode is able to perform a few functions
-		//   'createCar' - requires 5 args, ex: args: ['CAR12', 'Honda', 'Accord', 'Black', 'Tom']
-		//   'changeCarOwner' - requires 2 args , ex: args: ['CAR10', 'Dave']
-		const proposal_request = {
-			targets: [peer1, peer2, peer3, peer4],
-			chaincodeId: 'mycc',
-			fcn: 'createCar',
-			args: [req.body.carid, req.body.make, req.body.model, req.body.colour, req.body.owner],
-			chainId: 'workspace',
-			txId: tx_id
-		};
-
-
-		const { proposal, txId } = channel2.generateUnsignedProposal(proposal_request, mspId, cert);
-
-		const proposalBytes = proposal.toBuffer();
-		const digest = fabric_client2.getCryptoSuite().hash(proposalBytes);
-
-
-		//this has to be done in the client
-		//////////////////
-		const { prvKeyHex } = KEYUTIL.getKey(priv);
-
-		const EC = elliptic.ec;
-		
-		const ecdsaCurve = elliptic.curves['p256'];
-
-		const ecdsa = new EC(ecdsaCurve);
-		const signKey = ecdsa.keyFromPrivate(prvKeyHex, 'hex');
-		var sig = ecdsa.sign(Buffer.from(digest, 'hex'), signKey);
-		
-		sig = _preventMalleability(sig);
-		
-		const signature = Buffer.from(sig.toDER());
-
-		/////////////////
-		const signedProposal = {
-		    signature,
-		    proposal_bytes: proposalBytes,
-		};
-
-		var sendSignedProposalReq = {
-			signedProposal: signedProposal,
-			targets: [peer1, peer2, peer3, peer4]
-		}		
-		const proposalResponses = await channel2.sendSignedProposal(sendSignedProposalReq);
-
-		const commitReq = {
-			proposalResponses,
-			proposal,
-		};
-		
-		const commitProposal = await channel2.generateUnsignedTransaction(commitReq);
-
-		//const signedCommitProposal = signProposal(commitProposal);
-
-		var transactionBytes = commitProposal.toBuffer();
-    	var transaction_digest = fabric_client2.getCryptoSuite().hash(transactionBytes);
-    	var transaction_sig = ecdsa.sign(Buffer.from(transaction_digest, 'hex'), signKey);        
-    	transaction_sig = _preventMalleability(transaction_sig);
-    	var transaction_signature = Buffer.from(transaction_sig.toDER());
-
-    	var signedTransactionProposal = {
-    	  signature: transaction_signature,
-    	  proposal_bytes: transactionBytes,
-    	};
-
-    	var signedTransaction = {
-    	  signedProposal: signedTransactionProposal,
-    	  request: commitReq,
-		}
-		
-		channel2.sendSignedTransaction(signedTransaction);
-
-		res.setHeader("Access-Control-Allow-Origin", "*");
-		res.send('Transaction has been submitted');
-		
-
-	} catch(error) {
-		console.log('Unable to invoke ::'+ error.toString());
-	}
-	console.log('\n\n --- invoke.js - end');
-})
-*/
+/**
+ * In secure offline signing the process of invoking a transaction
+ * has to be done in three parts
+ * 
+ * First, from the client it is called  addcar2_1 to create the proposal with generateUnsignedProposal,
+ * this petition is sent back to the client and signed offline in the client.
+ * Once signed, it is sent to the server again and created the unsigned transaction with generateUnsignedTransaction.
+ * Finally it is sent back again to the client, where it is signed and sent for a last time to the server,wihch sent it to 
+ * the Blockchain.
+ */
 
 
 app.get('/api/addcar2_1/:carid/:make/:model/:colour/:owner', async function (req, res) {
@@ -501,7 +336,6 @@ app.get('/api/changeowner2_1/:carID/:owner', async function (req, res) {
 		const digest = fabric_client2.getCryptoSuite().hash(proposalBytes);
 
 
-		//this has to be done in the client
 		//////////////////
 
 	
@@ -525,7 +359,7 @@ app.get('/api/changeowner2_1/:carID/:owner', async function (req, res) {
 
 
 
-app.post('/api/changeowner2_2/', async function (req, res) {
+app.post('/api/genUnsignedTransaction/', async function (req, res) {
     try {
 
 		
@@ -580,7 +414,7 @@ app.post('/api/changeowner2_2/', async function (req, res) {
 
 
 
-app.post('/api/changeowner2_3/', async function (req, res) {
+app.post('/api/sendSignedTransaction/', async function (req, res) {
     try {
 
 		var transactionBytes = transactionBytesTmp;

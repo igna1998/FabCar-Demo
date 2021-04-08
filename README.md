@@ -51,3 +51,16 @@ If everything goes well we should see the frontend.
 The Private Keys are saved into hfc-key-store into the fabcar/javascript-low-level folder.
 There is one previously created private key stored into privkey.pem file.
 Paste the full content of this file when making transactions to obtain a successful result.
+
+
+## Explanation of folders
+In the folder fabcar are located the files needed to comunicate with the fabcar chaincode. 
+Inside this folder we find one folder called javascript and javascript-low-level. The first one
+contains an apiserver without offline signing. The seconde one contains the example of the 
+offline server rest api server.
+
+In the folder hyperledger-fabric-network-from-scratch are contained the material for generating an example 
+network like the first-network approach but with 4 organizations. It is optional to use this folder, but included 
+to provide a full example on how the Hyperledger environment works.
+
+In fabcar-frontend we find the client side files needed to comunicate with the server.
